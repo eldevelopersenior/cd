@@ -1,0 +1,47 @@
+// index.js
+const express = require('express');
+const { ethers } = require('ethers');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Dirección de tu token ERC20 en Base
+const TOKEN_ADDRESS = '0x560dcfb035a6dc876ad426bdaf846ea4dc6f6746';
+
+// ABI mínimo para consultar totalSupply, decimals y symbol
+const TOKEN_ABI = [
+  "function totalSupply() view returns (uint256)",
+  "function decimals() view returns (uint8)",
+  "function symbol() view returns (string)"
+];
+
+// Proveedor RPC para la red Base
+const provider = new ethers.providers.JsonRpcProvider('https://mainnet.base.org');
+
+const tokenContract = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, provider);
+
+app.get('/q/totalbc', async (req, res) => {
+  try {
+    const [totalSupply, decimals, symbol] = await Promise.all([
+      tokenContract.totalSupply(),
+      tokenContract.decimals(),
+      tokenContract.symbol()
+    ]);
+
+    const totalSupplyFormatted = ethers.utils.formatUnits(totalSupply, decimals);
+
+    res.json({
+      symbol,
+      totalSupply: totalSupply.toString(),
+      totalSupplyFormatted,
+      decimals
+    });
+  } catch (error) {
+    console.error('Error obteniendo totalSupply:', error);
+    res.status(500).json({ error: 'Error al obtener el suministro total' });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`API escuchando en http://localhost:${PORT}`);
+});
